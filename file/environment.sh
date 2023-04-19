@@ -1,6 +1,6 @@
-conda create -n py37 python=3.7
-conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
-conda activate py37
+conda create -n OctAttention python=3.7
+conda activate OctAttention
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install hdf5storage
 pip install Ninja
 pip install tensorboard

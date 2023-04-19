@@ -28,8 +28,7 @@ nhid = 300 # the dimension of the feedforward network model in nn.TransformerEnc
 nlayers = 3 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
 nhead = 4 # the number of heads in the multiheadattention models
 dropout = 0 # the dropout value
-batchSize = 32
-
+batchSize = 128
 
 
 class TransformerModel(nn.Module):

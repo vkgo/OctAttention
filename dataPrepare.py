@@ -12,29 +12,50 @@ Description: Prepare data for traning and testing.
                     }
 All rights reserved.
 '''
+'''
+Author: https://github.com/vkgo
+Update 2023-4-18
+Change the program to multi-process
+Update 2023-4-19
+Support to process multiple directories at the same time
+'''
 import glob
 from Preparedata.data import dataPrepare
 from networkTool import CPrintl
+import multiprocessing as mp
+
 def makedFile(dir):
     fileList = sorted(glob.glob(dir))
     return fileList
-if __name__=="__main__":
 
-######For MPEG,MVUB######    
-    oriDir = '/8iVFBv2/longdress/Ply/*.ply'
-    outDir = 'Data/Obj/train/'
+def prepare_data(file):
+    try:
+        fileName = file.split('/')[-1][:-4]
+        dataName = outDir + ptNamePrefix + fileName + '.mat'
+        if dataName in makeFileList:
+            print(dataName, 'maked!')
+            return
+        dataPrepare(file, saveMatDir=outDir, ptNamePrefix=ptNamePrefix, offset=0, rotation=False)
+        # please set `rotation=True` in the `dataPrepare` function when processing MVUB data
+        printl(dataName)
+    except Exception as e:
+        print(f"Error occurred while processing file {file}: {e}")
+
+if __name__ == "__main__":
+
+    ######For MPEG,MVUB######
+    oriDirs = ['./8iVFBv2/longdress/Ply/*.ply', './8iVFBv2/soldier/Ply/*.ply']  # Add more directories to this list
+    outDir = './Data/Obj/train/'
     ptNamePrefix = 'MPEG_' # 'MVUB_'
 
     printl = CPrintl('Preparedata/makedFileObj.log')
-    makeFileList = makedFile(outDir+'*.mat')
-    fileList = sorted(glob.glob(oriDir))
-    for n,file in enumerate(fileList):
-        fileName = file.split('/')[-1][:-4]
-        dataName = outDir+ptNamePrefix+fileName+'.mat'
-        if dataName in makeFileList:   
-            print(dataName,'maked!')
-            continue
-        dataPrepare(file,saveMatDir=outDir,ptNamePrefix=ptNamePrefix,offset=0,rotation=False)
-        # please set `rotation=True` in the `dataPrepare` function when processing MVUB data
-        if n%10==0:
-            printl(dataName)
+    makeFileList = makedFile(outDir + '*.mat')
+
+    fileList = []
+    for oriDir in oriDirs:
+        fileList += sorted(glob.glob(oriDir))
+
+    # 使用多进程处理文件
+    num_processes = mp.cpu_count()
+    with mp.Pool(num_processes) as pool:
+        pool.map(prepare_data, fileList)
