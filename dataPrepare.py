@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     ######For MPEG,MVUB######
     oriDirs = ['./8iVFBv2/longdress/Ply/*.ply', './8iVFBv2/soldier/Ply/*.ply']  # Add more directories to this list
-    outDir = './Data/Obj/train/'
+    outDir = './Datatemp/Obj/train/'
     ptNamePrefix = 'MPEG_' # 'MVUB_'
 
     printl = CPrintl('Preparedata/makedFileObj.log')

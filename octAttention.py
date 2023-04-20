@@ -37,7 +37,7 @@ class TransformerModel(nn.Module):
         super(TransformerModel, self).__init__()
         self.model_type = 'Transformer'
 
-        self.pos_encoder = PositionalEncoding(ninp, dropout)
+        self.pos_encoder = PositionalEncoding(ninp, dropout) # position encoder
 
         encoder_layers = TransformerLayer(ninp, nhead, nhid, dropout)
         self.transformer_encoder = TransformerModule(encoder_layers, nlayers)
@@ -91,7 +91,7 @@ class TransformerModel(nn.Module):
 
         # src = self.pos_encoder(src)
         output = self.transformer_encoder(src, src_mask)
-        output = self.decoder1(self.act(self.decoder0(output)))
+        output = self.decoder1(self.act(self.decoder0(output))) # output[1024, batch, 4*(128+4+6)]
         return output
 
 ######################################################################
@@ -189,7 +189,7 @@ if __name__=="__main__":
             train_data = d[0].reshape((batchSize,-1,4,6)).to(device).permute(1,0,2,3)   #shape [TreePoint*batch_size(data)/batch_size,batch_size,7,6]
             src_mask = model.generate_square_subsequent_mask(bptt).to(device)
             for index, i in enumerate(range(0, train_data.size(0) - 1, bptt)):
-                data, targets,dataFeat = get_batch(train_data, i)#data [35,20]
+                data, targets,dataFeat = get_batch(train_data, i)#data [35,20] [1024, batch_size, 4, 6] target [1024*batch]
                 optimizer.zero_grad()
                 if data.size(0) != bptt:
                     src_mask = model.generate_square_subsequent_mask(data.size(0)).to(device)

@@ -9,6 +9,7 @@ TEMPPATH = "temp/data/"
 
 def pcerror(pcRefer,pc,pcReferNorm,pcerror_cfg_params, pcerror_result,pcerror_path=PCERRORPATH):
   '''
+  计算两个点云之间的误差。输入包括两个点云文件、法向量文件、配置参数等。这个函数会调用外部程序（pcerror_path）来计算误差。
   Options: 
           --help=0            This help text
     -a,   --fileA=""          Input file 1, original version
@@ -58,6 +59,9 @@ def pcerror(pcRefer,pc,pcReferNorm,pcerror_cfg_params, pcerror_result,pcerror_pa
                 stdout=f, stderr=f)
 
 def loadply2(path,color_format='rgb'):
+    '''
+    从给定的 PLY 文件中读取点云数据，返回点的坐标和颜色（或其他属性）。
+    '''
     plydata = PlyData.read(path)
     
     data = plydata.elements[0].data
@@ -76,6 +80,7 @@ def loadply2(path,color_format='rgb'):
 
 def write_ply_data(filename, points,attributeName=[],attriType=[]): 
     '''
+    将点云数据写入 PLY 文件。输入包括文件名、点坐标以及其他属性名和类型。
     write data to ply file.
     e.g pt.write_ply_data('ScanNet_{:5d}.ply'.format(idx), np.hstack((point,np.expand_dims(label,1) )) , attributeName=['intensity'], attriType =['uint16'])
     '''
@@ -101,12 +106,16 @@ def write_ply_data(filename, points,attributeName=[],attriType=[]):
     return
 
 def h5toPly(h5Path,plyPath):
+    '''
+    将点云数据从 H5 文件转换为 PLY 文件。
+    '''
     pt,_ = pcread(h5Path)
     write_ply_data(plyPath,pt)
     return pt
 
 def ptread(path):
   """
+  从文件中读取点云数据（只包括点的坐标）。
   Load ptcloud
   Returns: coords.
   """
@@ -115,6 +124,7 @@ def ptread(path):
 
 def pcread(path,color_format = 'rgb'):
   """
+  从文件中读取点云数据（包括点的坐标和颜色/属性）。支持多种文件格式，如 PLY、H5 和 BIN。
   Load ptcloud
   Returns: coords & feats.
   """
@@ -132,12 +142,17 @@ def pcread(path,color_format = 'rgb'):
       return loadbin(path)
 
 def loadbin(file): # for KITTI
+  '''
+  从 KITTI 数据集的 BIN 文件中读取点云数据。
+  '''
   points = np.fromfile(file, dtype=np.float32).reshape(-1, 4)
   return points[:,0:3],points[:,3:4]
 
 
 def loadh5(filedir, color_format='rgb'):
-  """Load coords & feats from h5 file.
+  """
+  从 H5 文件中读取点云数据，可以选择返回颜色格式（RGB、YUV等）。
+  Load coords & feats from h5 file.
 
   Arguments: file direction
 
@@ -165,7 +180,9 @@ def loadh5(filedir, color_format='rgb'):
   return coords, feats
 
 def loadply(filedir, color_format='rgb'):
-  """Load coords & feats from ply file.
+  """
+  从 PLY 文件中读取点云数据，可以选择返回颜色格式（RGB、YUV等）。
+  Load coords & feats from ply file.
   
   Arguments: file direction.
   

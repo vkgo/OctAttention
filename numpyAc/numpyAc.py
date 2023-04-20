@@ -107,11 +107,11 @@ def _convert_to_int_and_normalize(cdf_float, needs_normalization):
     cdf+=r
   return cdf
 
-def pdf_convert_to_cdf_and_normalize(pdf):
+def pdf_convert_to_cdf_and_normalize(pdf): # 接受概率密度函数（PDF） 累积分布函数（CDF）
     assert pdf.ndim==2
-    cdfF = np.cumsum( pdf, axis=1)
-    cdfF = cdfF/cdfF[:,-1:]
-    cdfF = np.hstack((np.zeros((pdf.shape[0],1)),cdfF))
+    cdfF = np.cumsum( pdf, axis=1) # 沿着 axis=1（横轴）对 PDF 进行累加，得到未归一化的累积分布函数（CDF）。
+    cdfF = cdfF/cdfF[:,-1:] # 将 CDF 中的每个值除以最后一列的值（即累积概率为 1 的值），实现 CDF 的归一化。此时 CDF 的最大值为 1。
+    cdfF = np.hstack((np.zeros((pdf.shape[0],1)),cdfF)) # 为 CDF 矩阵添加一列全 0，使得 CDF 的最小值为 0。这样做的目的是在编码过程中确保 CDF 是单调递增的。
     return cdfF
 
 class arithmeticCoding():
@@ -127,7 +127,7 @@ class arithmeticCoding():
 
     self.sysNum = sym.shape[0]
 
-    cdfF = pdf_convert_to_cdf_and_normalize(pdf)
+    cdfF = pdf_convert_to_cdf_and_normalize(pdf) # cdfF是 [0] + 累积概率密度
 
     self.byte_stream = _encode_float_cdf(cdfF, sym, check_input_bounds=True)
     real_bits = len(self.byte_stream) * 8

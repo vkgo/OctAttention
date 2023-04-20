@@ -71,7 +71,7 @@ def compress(oct_data_seq,outputfile,model,actualcode = True,print=print,showRel
     assert(batch_size*bptt<oct_len)
     
     #%%
-    dataID,padingdata = dataPreProcess(oct_data_seq,bptt,batch_size,oct_len)
+    dataID,padingdata = dataPreProcess(oct_data_seq,bptt,batch_size,oct_len) # paddingdata = [bptt,1,4,6] * [0] + oct_data_seq + [bptt+1,1,4,6] * [0]
     MAX_GPU_MEM_It = 2**13 # you can change this according to the GUP memory size (2**12 for 24G)
     MAX_GPU_MEM = min(bptt*MAX_GPU_MEM_It,dataID.max())+2  #  bptt <= MAX_GPU_MEM -1 < min(MAX_GPU,dataID)
 
@@ -126,7 +126,7 @@ def compress(oct_data_seq,outputfile,model,actualcode = True,print=print,showRel
         # Estimate the bitrate at each level
         for i in range(oct_len):
             octvalue = int(oct_seq[i,-1])
-            bit0,acc0 =encodeNode(proBit[i],octvalue)
+            bit0,acc0 =encodeNode(proBit[i],octvalue) # bit0类似损失
             bit+=bit0
             acc+=acc0
             if templevel!=levelID[i]:
@@ -160,6 +160,11 @@ def main(fileName,model,actualcode = True,showRelut=True,printl = print):
     ptName = os.path.basename(matDataPath)
     outputfile = expName+"/data/"+ptName[:-4]+".bin"
     binsz,oct_len,elapsed,binszList,octNumList = compress(oct_data_seq,outputfile,model,actualcode,printl,showRelut)
+    # binsz: float 类型，表示压缩后的二进制文件大小（单位：位），即比特率。
+    # oct_len: int 类型，表示八叉树数据的长度（节点数量）。
+    # elapsed: float 类型，表示模型进行压缩操作所花费的总时间（单位：秒）。
+    # binszList: 一个 float 类型列表，表示从深度 8 开始，每个深度级别的预计二进制文件大小（单位：位）。
+    # octNumList: 一个 int 类型列表，表示从深度 8 开始，每个深度级别的八叉树节点数量。
     if showRelut:
         printl("ptName: ",ptName)
         printl("time(s):",elapsed)
