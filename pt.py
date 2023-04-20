@@ -9,7 +9,14 @@ TEMPPATH = "temp/data/"
 
 def pcerror(pcRefer,pc,pcReferNorm,pcerror_cfg_params, pcerror_result,pcerror_path=PCERRORPATH):
   '''
-  计算两个点云之间的误差。输入包括两个点云文件、法向量文件、配置参数等。这个函数会调用外部程序（pcerror_path）来计算误差。
+    计算两个点云之间的误差。输入包括两个点云文件、法向量文件、配置参数等。这个函数会调用外部程序（pcerror_path）来计算误差。
+    pcRefer：参考点云文件
+    pc：待比较点云文件
+    pcReferNorm：参考点云法向量文件
+    pcerror_cfg_params：误差计算程序的配置参数
+    pcerror_result：输出结果的文件名
+    pcerror_path：误差计算程序的路径（默认为 PCERRORPATH）
+
   Options: 
           --help=0            This help text
     -a,   --fileA=""          Input file 1, original version
@@ -33,11 +40,11 @@ def pcerror(pcRefer,pc,pcReferNorm,pcerror_cfg_params, pcerror_result,pcerror_pa
                               0: none (identity) 1: ITU-R BT.709 8: YCgCo-R
           --nbThreads=1       Number of threads used for parallel processing
   '''
-  if pcerror_result is not None:
+  if pcerror_result is not None: # 如果提供了 pcerror_result 参数，则从中提取文件名作为标签；否则，使用默认标签 "pt0"。
     pcLabel =os.path.basename(pcerror_result).split(".")[0]
   else:
     pcLabel = "pt0"
-  if type(pc) is not str:
+  if type(pc) is not str: # 如果提供了 pcerror_result 参数，则从中提取文件名作为标签；否则，使用默认标签 "pt0"。
     write_ply_data(TEMPPATH + pcLabel + "pc.ply",pc)
     pc = TEMPPATH +pcLabel + "pc.ply"
   if type(pcRefer) is not str:

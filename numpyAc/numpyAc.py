@@ -93,6 +93,7 @@ def _convert_to_int_and_normalize(cdf_float, needs_normalization):
   Then, in a final step, we add an arange(Lp), which is just a line with
   slope one. This ensure that for sure, we will get unique, strictly
   monotonically increasing CDFs, which are \in [0, 2**16)
+  将输入的浮点数累积分布函数（CDF）转换为整数形式，并确保其单调递增。
   """
   Lp = cdf_float.shape[-1]
   factor = 2**PRECISION
@@ -129,7 +130,7 @@ class arithmeticCoding():
 
     cdfF = pdf_convert_to_cdf_and_normalize(pdf) # cdfF是 [0] + 累积概率密度
 
-    self.byte_stream = _encode_float_cdf(cdfF, sym, check_input_bounds=True)
+    self.byte_stream = _encode_float_cdf(cdfF, sym, check_input_bounds=True) # 编码
     real_bits = len(self.byte_stream) * 8
     # # Write to a file.
     if binfile is not None:

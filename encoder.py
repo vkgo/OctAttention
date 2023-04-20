@@ -15,7 +15,8 @@ import pt as pointCloud
 ## decoder.py relys on this model here
 ## do not move this lines to somewhere else
 model = model.to(device)
-saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
+# saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
+saveDic = reload(None,'./Exp/Obj/checkpoint/encoder_epoch_00800020.pth')
 model.load_state_dict(saveDic['encoder'])
 
 ###########Objct##############
@@ -33,7 +34,7 @@ if __name__=="__main__":
         ptName = os.path.splitext(os.path.basename(oriFile))[0] 
         for qs in [1]:
             ptNamePrefix = ptName
-            matFile,DQpt,refPt = dataPrepare(oriFile,saveMatDir='./Data/testPly',qs=qs,ptNamePrefix='',rotation=False)
+            matFile,DQpt,refPt = dataPrepare(oriFile,saveMatDir='./Data/testPly',qs=qs,ptNamePrefix='',rotation=False) #  .mat 文件的路径、量化后的点云数据和处理后的点云数据。
             # please set `rotation=True` in the `dataPrepare` function when processing MVUB data
             main(matFile,model,actualcode=True,printl =printl) # actualcode=False: bin file will not be generated
             print('_'*50,'pc_error','_'*50)

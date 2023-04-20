@@ -50,13 +50,13 @@ def decodeOct(binfile,oct_data_seq,model,bptt):
 
         output = model(input,src_mask,[])
 
-        freqsinit = torch.softmax(output[-1],1).squeeze().cpu().detach().numpy()
+        freqsinit = torch.softmax(output[-1],1).squeeze().cpu().detach().numpy()  # 将模型输出转换为概率分布
         
         oct_len = len(oct_data_seq)
 
-        dec = numpyAc.arithmeticDeCoding(None,oct_len,255,binfile)
+        dec = numpyAc.arithmeticDeCoding(None,oct_len,255,binfile) # 初始化算术解码器
 
-        root =  decodeNode(freqsinit,dec)
+        root =  decodeNode(freqsinit,dec) # 解码根节点
         nodeId = 0
         
         KfatherNode = KfatherNode[3:]+[[root,1,1]] + [[root,1,1]] # for padding for first row # ( the parent of root node is root itself)
@@ -106,26 +106,26 @@ def decodeNode(pro,dec):
 
 if __name__=="__main__":
 
-    for oriFile in list_orifile: # from encoder.py
-        ptName = os.path.basename(oriFile)[:-4]
-        matName = 'Data/testPly/'+ptName+'.mat'
-        binfile = expName+'/data/'+ptName+'.bin'
-        cell,mat =matloader(matName)
+    for oriFile in list_orifile:  # 遍历encoder.py中的原始文件列表
+        ptName = os.path.basename(oriFile)[:-4]  # 提取原始文件的基本名称（不带扩展名）
+        matName = 'Data/testPly/' + ptName + '.mat'  # 构造对应的.mat文件名
+        binfile = expName + '/data/' + ptName + '.bin'  # 构造对应的.bin文件名
+        cell, mat = matloader(matName)  # 加载.mat文件，获取其单元格数据和矩阵数据
 
-        # Read Sideinfo
-        oct_data_seq = np.transpose(mat[cell[0,0]]).astype(int)[:,-1:,0]# for check
-        
-        p = np.transpose(mat[cell[1,0]]['Location']) # ori point cloud
-        offset = np.transpose(mat[cell[2,0]]['offset'])
-        qs = mat[cell[2,0]]['qs'][0]
+        # 读取Sideinfo
+        oct_data_seq = np.transpose(mat[cell[0, 0]]).astype(int)[:, -1:, 0]  # 提取八叉树节点占用信息作为检查数据
 
-        Code,elapsed = decodeOct(binfile,oct_data_seq,model,bptt)
-        print('decode succee,time:', elapsed)
-        print('oct len:',len(Code))
+        p = np.transpose(mat[cell[1, 0]]['Location'])  # 提取原始点云数据
+        offset = np.transpose(mat[cell[2, 0]]['offset'])  # 提取解码时需要的偏移量
+        qs = mat[cell[2, 0]]['qs'][0]  # 提取解码时需要的缩放因子
+
+        Code, elapsed = decodeOct(binfile, oct_data_seq, model, bptt)  # 解码二进制文件以获取八叉树占用信息，同时计算解码耗时
+        print('decode succee, time:', elapsed)  # 打印解码成功及耗时信息
+        print('oct len:', len(Code))  # 打印八叉树占用信息长度
 
         # DeOctree
-        ptrec = DeOctree(Code)
+        ptrec = DeOctree(Code)  # 从八叉树占用信息重构点云
         # Dequantization
-        DQpt = (ptrec*qs+offset)
-        pt.write_ply_data(expName+"/temp/test/rec.ply",DQpt)
-        pt.pcerror(p,DQpt,None,'-r 1',None).wait()
+        DQpt = (ptrec * qs + offset)  # 对重构点云进行逆量化操作
+        pt.write_ply_data(expName + "/temp/test/rec.ply", DQpt)  # 将重构点云写入.ply文件
+        pt.pcerror(p, DQpt, None, '-r 1', None).wait()  # 计算原始点云和重构点云之间的误差
