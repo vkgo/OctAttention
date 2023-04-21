@@ -15,8 +15,8 @@ import pt as pointCloud
 ## decoder.py relys on this model here
 ## do not move this lines to somewhere else
 model = model.to(device)
-# saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
-saveDic = reload(None,'./Exp/Obj/checkpoint/encoder_epoch_00800020.pth')
+saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
+# saveDic = reload(None,'./Exp/Obj/checkpoint/encoder_epoch_008000110.pth')
 model.load_state_dict(saveDic['encoder'])
 
 ###########Objct##############
