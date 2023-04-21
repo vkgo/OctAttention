@@ -23,6 +23,9 @@ from encoderTool import bpttRepeatTime,generate_square_subsequent_mask
 import numpyAc
 import pt
 from dataset import default_loader as matloader
+from multiprocessing import Process, cpu_count
+import multiprocessing as mp
+
 
 batch_size = 32
 # encoder setting
@@ -41,6 +44,22 @@ def read_ply_files(path):
         if file.endswith('.ply'):
             ply_files.append(os.path.join(path, file))
     return ply_files
+
+def encode_process(oriFile, ori_processed_pc_stored_dir, model, printl):
+    '''
+    encoder's function
+    Use to do the encode process.
+    Mainly use in multiprocessing.
+    '''
+    printl(oriFile)
+    if os.path.getsize(oriFile) > 300 * (1024 ** 2):  # 300M
+        printl('too large!')
+        return
+    ptName = os.path.splitext(os.path.basename(oriFile))[0]
+    for qs in [1]:
+        ptNamePrefix = ptName
+        matFile, DQpt, refPt = dataPrepare(oriFile, saveMatDir=ori_processed_pc_stored_dir, qs=qs, ptNamePrefix='', rotation=False)
+        main(matFile, model, actualcode=True, printl=printl)
 
 
 def decodeOct(binfile, oct_data_seq, model, bptt):
@@ -139,20 +158,23 @@ if __name__=="__main__":
     printl('list_orifile\'s length:', len(list_orifile))
     # check if mode set to encode
     if mode['encode']:
+        mp.set_start_method('spawn')
         printl('* Encode Mode:')
+        num_processes = cpu_count()  # 获取CPU核心数，也可以将其替换为自定义进程数
+        processes = []
         for oriFile in list_orifile:
-            printl(oriFile)
-            if (os.path.getsize(oriFile)>300*(1024**2)):#300M
-                printl('too large!')
-                continue
-            ptName = os.path.splitext(os.path.basename(oriFile))[0]
-            for qs in [1]:
-                # This will output binary codes saved in .bin format in ./Exp(expName)/data (The compressed file),
-                # and will generate *.mat data in the directory ./Data/testPly (The original file).
-                ptNamePrefix = ptName
-                matFile,DQpt,refPt = dataPrepare(oriFile,saveMatDir=ori_processed_pc_stored_dir,qs=qs,ptNamePrefix='',rotation=False) #  .mat 文件的路径、量化后的点云数据和处理后的点云数据。
-                # please set `rotation=True` in the `dataPrepare` function when processing MVUB data
-                main(matFile,model,actualcode=True,printl =printl) # actualcode=False: bin file will not be generated
+            p = Process(target=encode_process, args=(oriFile, ori_processed_pc_stored_dir, model, printl))
+            processes.append(p)
+            p.start()
+            # 限制并行进程的数量
+            while len(processes) >= num_processes:
+                for p in processes:
+                    if not p.is_alive():
+                        p.join()
+                        processes.remove(p)
+        # 等待所有进程完成
+        for p in processes:
+            p.join()
 
     if mode['decode']:
         printl('* Decode Mode:')
