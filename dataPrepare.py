@@ -44,12 +44,16 @@ def prepare_data(file):
 if __name__ == "__main__":
 
     ######For MPEG,MVUB######
-    oriDirs = ['./8iVFBv2/loot/Ply/*.ply', './8iVFBv2/redandblack/Ply/*.ply', './8iVLSF_910bit/boxer_viewdep_vox9.ply',
-               './8iVLSF_910bit/boxer_viewdep_vox10.ply', './8iVLSF_910bit/Thaidancer_viewdep_vox9.ply',
-               './8iVLSF_910bit/Thaidancer_viewdep_vox10.ply']  # Add more directories to this list
-    outDir = './Data/Obj/test/'
-    ptNamePrefix = 'MPEG_' # 'MVUB_'
-
+    # --for MPEG--
+    # oriDirs = ['./8iVFBv2/loot/Ply/*.ply', './8iVFBv2/redandblack/Ply/*.ply', './8iVLSF_910bit/boxer_viewdep_vox9.ply',
+    #            './8iVLSF_910bit/boxer_viewdep_vox10.ply', './8iVLSF_910bit/Thaidancer_viewdep_vox9.ply',
+    #            './8iVLSF_910bit/Thaidancer_viewdep_vox10.ply']  # Add more directories to this list
+    # oriDirs = ['./8iVFBv2/longdress/Ply/*.ply', './8iVFBv2/soldier/Ply/*.ply']
+    # ptNamePrefix = 'MPEG_'
+    # --for MVUB--
+    oriDirs = ['./MVUB/andrew10/ply/*.ply', './MVUB/david10/ply/*.ply','./MVUB/sarah10/ply/*.ply']
+    ptNamePrefix = 'MVUB_'
+    outDir = './Data/Obj/train/'
     printl = CPrintl('Preparedata/makedFileObj.log')
     makeFileList = makedFile(outDir + '*.mat')
 

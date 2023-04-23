@@ -105,7 +105,7 @@ def decodeNode(pro,dec):
 
 
 if __name__=="__main__":
-
+    list_orifile = ['testplyfiles/boxer_viewdep_vox9.ply']
     for oriFile in list_orifile:  # 遍历encoder.py中的原始文件列表
         ptName = os.path.basename(oriFile)[:-4]  # 提取原始文件的基本名称（不带扩展名）
         matName = 'Data/testPly/' + ptName + '.mat'  # 构造对应的.mat文件名

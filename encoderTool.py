@@ -180,4 +180,4 @@ def main(fileName,model,actualcode = True,showRelut=True,printl = print):
         printl("bit per oct:",binsz/oct_len)
         printl("oct len",oct_len)
  
-    return binsz/oct_len
+    return {'binsize':binsz, 'ptnum':ptNum, 'octlen':oct_len}

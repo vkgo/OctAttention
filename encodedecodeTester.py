@@ -23,15 +23,15 @@ from encoderTool import bpttRepeatTime,generate_square_subsequent_mask
 import numpyAc
 import pt
 from dataset import default_loader as matloader
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process, cpu_count, Queue
 import multiprocessing as mp
 
 
-batch_size = 32
+batch_size = 1
 # encoder setting
 model = model.to(device)
-saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
-# saveDic = reload(None,'./Exp/Obj/checkpoint/encoder_epoch_008000110.pth')
+# saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
+saveDic = reload(None,'./Exp/Obj/checkpoint/encoder_epoch_00800110.pth')
 model.load_state_dict(saveDic['encoder'])
 
 def read_ply_files(path):
@@ -45,7 +45,7 @@ def read_ply_files(path):
             ply_files.append(os.path.join(path, file))
     return ply_files
 
-def encode_process(oriFile, ori_processed_pc_stored_dir, model, printl):
+def encode_process(oriFile, ori_processed_pc_stored_dir, model, printl, result_queue):
     '''
     encoder's function
     Use to do the encode process.
@@ -58,9 +58,12 @@ def encode_process(oriFile, ori_processed_pc_stored_dir, model, printl):
     ptName = os.path.splitext(os.path.basename(oriFile))[0]
     for qs in [1]:
         ptNamePrefix = ptName
-        matFile, DQpt, refPt = dataPrepare(oriFile, saveMatDir=ori_processed_pc_stored_dir, qs=qs, ptNamePrefix='', rotation=False)
-        main(matFile, model, actualcode=True, printl=printl)
-
+        matFile, DQpt, refPt = dataPrepare(oriFile, saveMatDir=ori_processed_pc_stored_dir, qs=qs, ptNamePrefix=ptNamePrefix, rotation=False)
+        result = main(matFile, model, actualcode=True,
+                      printl=printl)  # actualcode=False: bin file will not be generated
+        # result is a dict. {'binsize':binsz, 'ptnum':ptNum, 'octlen':oct_len}
+        # Add the result to the queue
+        result_queue.put(result)
 
 def decodeOct(binfile, oct_data_seq, model, bptt):
     '''
@@ -145,11 +148,10 @@ def decodeNode(pro, dec):
     return root + 1
 
 if __name__=="__main__":
-    mode = {'encode': True, 'decode': True} # encode/decode
+    mode = {'encode': True, 'decode': False} # encode/decode
     # ---- encoder setting ----
     list_orifile = read_ply_files('./testplyfiles')
-    ori_processed_pc_stored_dir = './Data/testPly'
-
+    ori_processed_pc_stored_dir = './Data/Obj/test/'
     # ---- encoder part ----
     printl = CPrintl(expName+'/encoderPLY.txt')
     printl('_'*50,'OctAttention V0.4','_'*50)
@@ -162,8 +164,10 @@ if __name__=="__main__":
         printl('* Encode Mode:')
         num_processes = cpu_count()  # 获取CPU核心数，也可以将其替换为自定义进程数
         processes = []
+        # Create the queue
+        result_queue = mp.Queue()
         for oriFile in list_orifile:
-            p = Process(target=encode_process, args=(oriFile, ori_processed_pc_stored_dir, model, printl))
+            p = Process(target=encode_process, args=(oriFile, ori_processed_pc_stored_dir, model, printl, result_queue))
             processes.append(p)
             p.start()
             # 限制并行进程的数量
@@ -176,11 +180,35 @@ if __name__=="__main__":
         for p in processes:
             p.join()
 
+        # Get results from the queue and store them in a list
+        results = []
+        while not result_queue.empty():
+            result = result_queue.get()
+            results.append(result)
+
+        # Initialize the variables to store the sum of the ratios
+        total_bitsize_ptnum_ratio = 0
+        total_bitsize_octlen_ratio = 0
+
+        # Iterate through the results and accumulate the ratios
+        for result in results:
+            total_bitsize_ptnum_ratio += result['binsize'] / result['ptnum']
+            total_bitsize_octlen_ratio += result['binsize'] / result['octlen']
+
+        # Calculate the average ratios
+        num_results = len(results)
+        average_bitsize_ptnum_ratio = total_bitsize_ptnum_ratio / num_results
+        average_bitsize_octlen_ratio = total_bitsize_octlen_ratio / num_results
+
+        # Print the average ratios
+        printl("Average bitsize/ptnum ratio:", average_bitsize_ptnum_ratio)
+        printl("Average bitsize/octlen ratio:", average_bitsize_octlen_ratio)
+
     if mode['decode']:
         printl('* Decode Mode:')
         for oriFile in list_orifile:  # 遍历encoder.py中的原始文件列表
             ptName = os.path.basename(oriFile)[:-4]  # 提取原始文件的基本名称（不带扩展名）
-            matName = ori_processed_pc_stored_dir + ptName + '.mat'  # 构造对应的.mat文件名
+            matName = 'Data/testPly/' + ptName + '.mat'  # 构造对应的.mat文件名
             binfile = expName + '/data/' + ptName + '.bin'  # 构造对应的.bin文件名
             cell, mat = matloader(matName)  # 加载.mat文件，获取其单元格数据和矩阵数据
 
