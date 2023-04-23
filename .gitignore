@@ -8,8 +8,9 @@ __pycache__
 /.idea
 /.*
 /log
-/Exp
-/Exp_2
+/Exp/Obj/data
+/Exp_2/Obj/data
+/Exp-bak/Obj/data
 /Data
 /temp
 /testplyfiles
