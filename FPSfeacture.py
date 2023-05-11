@@ -58,7 +58,7 @@ class PointNetGlobalFeatureExtractor(nn.Module):
     def __init__(self):
         super(PointNetGlobalFeatureExtractor, self).__init__()
 
-        self.featureExtractor_conv1 = nn.Conv1d(6, 64, 1)
+        self.featureExtractor_conv1 = nn.Conv1d(6, 64, )
         self.featureExtractor_conv2 = nn.Conv1d(64, 128, 1)
         self.featureExtractor_conv3 = nn.Conv1d(128, 255, 1)
 

@@ -87,7 +87,7 @@ class Q_KV_MultiheadAttention(nn.Module):
     Q和KV不同源
     '''
     def __init__(self, q_dim, kv_dim, nhead, dropout=0.5):
-        super(SelfMultiheadAttention, self).__init__()
+        super(Q_KV_MultiheadAttention, self).__init__()
         self.nhead = nhead
         self.head_size = kv_dim // nhead
         assert self.head_size * nhead == kv_dim, "embed_dim must be divisible by num_heads"
@@ -128,6 +128,29 @@ class Q_KV_MultiheadAttention(nn.Module):
 
         return context
 
+class Q_KV_TransformerLayer(nn.Module):
+
+    def __init__(self, q_dim, kv_dim, nhead, nhid, dropout=0.1):
+        super(Q_KV_TransformerLayer, self).__init__()
+        self.MultiAttention = Q_KV_MultiheadAttention(q_dim=q_dim, kv_dim=kv_dim, nhead=nhead)
+        self.linear1 = nn.Linear(kv_dim, nhid)
+        self.dropout = nn.Dropout(dropout)
+        self.linear2 = nn.Linear(nhid, kv_dim)
+
+        self.norm1 = nn.LayerNorm(kv_dim, eps=1e-5)
+        self.norm2 = nn.LayerNorm(kv_dim, eps=1e-5)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
+
+    # src_q is the input for Q, src_x is the input for K and V
+    def forward(self, src_q, src_x, src_mask):
+        src2 = self.MultiAttention(src_q, src_x, src_mask)  # Multi-head Attention
+        src = self.dropout1(src2) + src_x
+        src = self.norm1(src)
+        src2 = self.linear2(self.dropout(torch.relu(self.linear1(src))))
+        src = src + self.dropout2(src2)
+        src = self.norm2(src)
+        return src
 
 class TransformerModule(nn.Module):
 
