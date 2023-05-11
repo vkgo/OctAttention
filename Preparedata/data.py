@@ -14,6 +14,21 @@ import os
 import hdf5storage
 
 def dataPrepare(fileName,saveMatDir='Data',qs=1,ptNamePrefix='',offset='min',qlevel=None,rotation=False,normalize=False):
+    '''
+    这个函数dataPrepare的主要目的是准备并保存点云数据到一个.mat文件。
+    它接受一系列参数，包括文件名、保存路径、量化步长、点云名称前缀、偏移量、量化等级、是否旋转和是否标准化等。
+    流程：
+    检查保存路径是否存在，如果不存在，则创建相应的目录。
+    从文件中读取点云数据。
+    如果需要标准化，将点云数据标准化到[-1,1]^3范围内。
+    如果需要旋转，对点云数据进行旋转。
+    根据参数offset，对点云数据进行平移。
+    如果提供了量化等级，根据量化等级计算量化步长。
+    对点云数据进行量化，去除重复的点，并生成八叉树（Octree）。
+    生成四叉树（K-parent）序列。
+    保存点云数据、相关信息和四叉树序列到一个.mat文件。
+    返回生成的.mat文件路径、量化后的点云数据和原始点云数据。
+    '''
     if not os.path.exists(saveMatDir):
         os.makedirs(saveMatDir)
     ptName = ptNamePrefix+os.path.splitext(os.path.basename(fileName))[0]

@@ -14,7 +14,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Network parameters
 bptt = 1024 # Context window length
-expName = './Exp_2/Obj'
+expName = './Exp_2/batch32'
 DataRoot = './Data/Obj'
 
 checkpointPath = expName+'/checkpoint'

@@ -17,6 +17,8 @@ import datetime
 from networkTool import *
 from torch.utils.tensorboard import SummaryWriter
 from attentionModel import TransformerLayer,TransformerModule
+from FPSfeacture import farthest_point_sampling, PointNetGlobalFeatureExtractor
+import itertools
 
 ##########################
 
@@ -52,6 +54,8 @@ class TransformerModel(nn.Module):
         self.decoder1 = nn.Linear(ninp, ntoken)
         self.init_weights()
 
+
+
     def generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
@@ -64,7 +68,7 @@ class TransformerModel(nn.Module):
         self.decoder0.weight.data= nn.init.xavier_normal_(self.decoder0.weight.data )
         self.decoder1.bias.data.zero_()
         self.decoder1.weight.data = nn.init.xavier_normal_(self.decoder1.weight.data )
-    def forward(self, src, src_mask, dataFeat):
+    def forward(self, src, src_mask, dataFeat, total_feature):
         bptt = src.shape[0]
         batch = src.shape[1]
 
@@ -136,15 +140,16 @@ def get_batch(source, i):
 # -------------
 #
 model = TransformerModel(ntokens, ninp, nhead, nhid, nlayers, dropout).to(device)
+feature_extractor_model = PointNetGlobalFeatureExtractor().to(device)
 if __name__=="__main__":
     import dataset
     import torch.utils.data as data
     import time
     import os
 
-    epochs = 8 # The number of epochs
+    epochs = 12 # The number of epochs
     best_model = None
-    batch_size = 128
+    batch_size = 32
     TreePoint = bptt*16
     train_set = dataset.DataFolder(root=trainDataRoot, TreePoint=TreePoint,transform=None,dataLenPerFile= 391563.61670395226) # you should run 'dataLenPerFile' in dataset.py to get this num (17456051.4)
     train_loader = data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=False, num_workers=4,drop_last=True) # will load TreePoint*batch_size at one time
@@ -162,7 +167,8 @@ if __name__=="__main__":
     # learning
     criterion = nn.CrossEntropyLoss()
     lr = 1e-3 # learning rate
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(itertools.chain(model.parameters(), feature_extractor_model.parameters()), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     best_val_loss = float("inf")
     idloss = 0
@@ -186,14 +192,17 @@ if __name__=="__main__":
         for Batch, d in enumerate(train_loader): # there are two 'BATCH', 'Batch' includes batch_size*TreePoint/batchSize/bptt 'batch'es.
             batch = 0
  
-            train_data = d[0].reshape((batchSize,-1,4,6)).to(device).permute(1,0,2,3)   #shape [TreePoint*batch_size(data)/batch_size,batch_size,7,6]
+            train_data = d[0].reshape((batchSize,-1,4,6)).to(device).permute(1,0,2,3)   #shape [TreePoint*batch_size(data)/batch_size,batch_size,K,6]
+            # FPS sampling
+            fps_sam_octnodes = farthest_point_sampling(train_data, 255)
+            total_feature = feature_extractor_model(fps_sam_octnodes)
             src_mask = model.generate_square_subsequent_mask(bptt).to(device)
             for index, i in enumerate(range(0, train_data.size(0) - 1, bptt)):
                 data, targets,dataFeat = get_batch(train_data, i)#data [35,20] [1024, batch_size, 4, 6] target [1024*batch]
                 optimizer.zero_grad()
                 if data.size(0) != bptt:
                     src_mask = model.generate_square_subsequent_mask(data.size(0)).to(device)
-                output = model(data, src_mask,dataFeat)                         #output: [bptt,batch size,255]
+                output = model(data, src_mask,dataFeat, total_feature)                         #output: [bptt,batch size,255]
                 loss = criterion(output.view(-1, ntokens), targets)/math.log(2)
                 
                 loss.backward()

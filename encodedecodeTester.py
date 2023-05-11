@@ -31,7 +31,8 @@ batch_size = 1
 # encoder setting
 model = model.to(device)
 # saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
-saveDic = reload(None,'./Exp/Obj/checkpoint/encoder_epoch_00800110.pth')
+# saveDic = reload(None,'./Exp_2/batch32/checkpoint/encoder_epoch_00800970.pth')
+saveDic = reload(None,'./Exp_2/batch32/checkpoint/encoder_epoch_01201000.pth')
 model.load_state_dict(saveDic['encoder'])
 
 def read_ply_files(path):
@@ -60,7 +61,7 @@ def encode_process(oriFile, ori_processed_pc_stored_dir, model, printl, result_q
         ptNamePrefix = ptName
         matFile, DQpt, refPt = dataPrepare(oriFile, saveMatDir=ori_processed_pc_stored_dir, qs=qs, ptNamePrefix=ptNamePrefix, rotation=False)
         result = main(matFile, model, actualcode=True,
-                      printl=printl)  # actualcode=False: bin file will not be generated
+                      printl=printl, showRelut=False)  # actualcode=False: bin file will not be generated
         # result is a dict. {'binsize':binsz, 'ptnum':ptNum, 'octlen':oct_len}
         # Add the result to the queue
         result_queue.put(result)

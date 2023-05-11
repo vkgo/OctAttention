@@ -25,7 +25,7 @@ def dec2bin(n, count=8):
     return [int((n >> y) & 1) for y in range(count-1, -1, -1)]
 
 def dec2binAry(x, bits):
-    mask = np.expand_dims(2**np.arange(bits-1,-1,-1),1).T              
+    mask = np.expand_dims(2**np.arange(bits-1,-1,-1),1).T
     return (np.bitwise_and(np.expand_dims(x,1), mask)!=0).astype(int) 
 
 def bin2decAry(x):
