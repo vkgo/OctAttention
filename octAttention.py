@@ -54,7 +54,7 @@ class TransformerModel(nn.Module):
         self.decoder1 = nn.Linear(ninp, ntoken)
         self.init_weights()
 
-
+        self.total_feature_fc = nn.Linear(255, ninp)
 
     def generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
@@ -92,6 +92,11 @@ class TransformerModel(nn.Module):
         
         # src = self.ancestor_attention(a)
         src = a.reshape((bptt,a.shape[1],self.ninp))* math.sqrt(self.ninp)
+
+        total_feature = self.total_feature_fc(total_feature)
+        total_feature = total_feature.unsqueeze(1).expand(-1, bptt, -1).permute(1, 0, 2)
+
+        src = src + total_feature
 
         # src = self.pos_encoder(src)
         output = self.transformer_encoder(src, src_mask)
@@ -181,9 +186,11 @@ if __name__=="__main__":
         idloss = saveDic['idloss']
         best_val_loss = saveDic['best_val_loss']
         model.load_state_dict(saveDic['encoder'])
+        feature_extractor_model.load_state_dict(saveDic['feature_extractor'])
         
     def train(epoch):
         global idloss,best_val_loss
+        feature_extractor_model.train()
         model.train() # Turn on the train mode
         total_loss = 0.
         start_time = time.time()
@@ -195,18 +202,19 @@ if __name__=="__main__":
             train_data = d[0].reshape((batchSize,-1,4,6)).to(device).permute(1,0,2,3)   #shape [TreePoint*batch_size(data)/batch_size,batch_size,K,6]
             # FPS sampling
             fps_sam_octnodes = farthest_point_sampling(train_data, 255)
-            total_feature = feature_extractor_model(fps_sam_octnodes)
             src_mask = model.generate_square_subsequent_mask(bptt).to(device)
             for index, i in enumerate(range(0, train_data.size(0) - 1, bptt)):
                 data, targets,dataFeat = get_batch(train_data, i)#data [35,20] [1024, batch_size, 4, 6] target [1024*batch]
                 optimizer.zero_grad()
                 if data.size(0) != bptt:
                     src_mask = model.generate_square_subsequent_mask(data.size(0)).to(device)
+                total_feature = feature_extractor_model(fps_sam_octnodes)
                 output = model(data, src_mask,dataFeat, total_feature)                         #output: [bptt,batch size,255]
                 loss = criterion(output.view(-1, ntokens), targets)/math.log(2)
                 
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+                torch.nn.utils.clip_grad_norm_(feature_extractor_model.parameters(), 0.5)
                 optimizer.step()
                 total_loss += loss.item()
                 batch = batch+1
@@ -230,7 +238,7 @@ if __name__=="__main__":
                     idloss+=1
 
             if Batch%10==0:
-                save(epoch*100000+Batch,saveDict={'encoder':model.state_dict(),'idloss':idloss,'epoch':epoch,'best_val_loss':best_val_loss},modelDir=checkpointPath)
+                save(epoch*100000+Batch,saveDict={'encoder':model.state_dict(),'feature_extractor':feature_extractor_model.state_dict(),'idloss':idloss,'epoch':epoch,'best_val_loss':best_val_loss},modelDir=checkpointPath)
     
     # train
     for epoch in range(1, epochs + 1):

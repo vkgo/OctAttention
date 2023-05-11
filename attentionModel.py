@@ -82,6 +82,53 @@ class TransformerLayer(nn.Module):
         src = self.norm2(src)
         return src
 
+class Q_KV_MultiheadAttention(nn.Module):
+    '''
+    Q和KV不同源
+    '''
+    def __init__(self, q_dim, kv_dim, nhead, dropout=0.5):
+        super(SelfMultiheadAttention, self).__init__()
+        self.nhead = nhead
+        self.head_size = kv_dim // nhead
+        assert self.head_size * nhead == kv_dim, "embed_dim must be divisible by num_heads"
+
+        self.all_head_size = int(self.nhead * self.head_size)
+
+        self.mlpKey = nn.Linear(kv_dim, self.all_head_size)
+        self.mlpValue = nn.Linear(kv_dim, self.all_head_size)
+        # 添加一个新的线性层来处理Q的输入
+        self.mlpQuery = nn.Linear(q_dim, self.all_head_size)
+
+        self.dropout = nn.Dropout(dropout)
+
+    # ... 其他函数不变 ...
+
+    # 修改forward函数来接受Q和X两个输入
+    def forward(self, q, x, mask):
+        q = q.transpose(0, 1).contiguous()
+        x = x.transpose(0, 1).contiguous()
+
+        Key = self.slice(self.mlpKey(x), x.dim())
+        Value = self.slice(self.mlpValue(x), x.dim())
+        Query = self.slice(self.mlpQuery(q), q.dim())
+
+        attention_score = torch.matmul(Query, Key.transpose(-1, -2)) / math.sqrt(self.head_size)
+        attention_score = attention_score + mask
+        attention_map = self.dropout(nn.Softmax(dim=-1)(attention_score))
+
+        context = torch.matmul(attention_map, Value)
+        if (context.dim() == 4):
+            context = context.permute(0, 2, 1, 3).contiguous()  # [batch_size, bptt, 4 nhead, 42 head_size]
+        elif (context.dim() == 5):
+            context = context.permute(0, 1, 3, 2, 4).contiguous()  # [batch_size, bptt, levelNumK, 8, 64]
+        context_shape = context.size()[:-2] + (self.all_head_size,)
+        context = context.view(*context_shape)
+        context = context.transpose(0, 1).contiguous()
+        return context
+
+        return context
+
+
 class TransformerModule(nn.Module):
 
     def __init__(self,layer, nlayers):
@@ -94,3 +141,5 @@ class TransformerModule(nn.Module):
         for mod in self.layers:
             output = mod(output, src_mask=src_mask)
         return output
+
+
