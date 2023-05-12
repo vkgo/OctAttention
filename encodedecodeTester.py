@@ -32,7 +32,7 @@ batch_size = 1
 model = model.to(device)
 # saveDic = reload(None,'modelsave/obj/encoder_epoch_00800093.pth')
 # saveDic = reload(None,'./Exp_2/batch32/checkpoint/encoder_epoch_00800970.pth')
-saveDic = reload(None,'./Exp_2/batch32/checkpoint/encoder_epoch_01201000.pth')
+saveDic = reload(None,'./Exp_2/total_feature2/checkpoint/encoder_epoch_01200970.pth')
 model.load_state_dict(saveDic['encoder'])
 
 def read_ply_files(path):
@@ -163,7 +163,7 @@ if __name__=="__main__":
     if mode['encode']:
         mp.set_start_method('spawn')
         printl('* Encode Mode:')
-        num_processes = cpu_count()  # 获取CPU核心数，也可以将其替换为自定义进程数
+        num_processes = 8 # cpu_count() // 2  # 获取CPU核心数，也可以将其替换为自定义进程数
         processes = []
         # Create the queue
         result_queue = mp.Queue()

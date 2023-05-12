@@ -13,6 +13,7 @@ from networkTool import device,bptt,expName,levelNumK,MAX_OCTREE_LEVEL
 from dataset import default_loader as matloader
 import numpyAc
 import tqdm
+from FPSfeacture import farthest_point_sampling
 bpttRepeatTime = 1
 
 
@@ -53,7 +54,7 @@ return {float;total foward time of the model} elapsed
 return {float list;estimated bin size (in bit) of depth 8~maxlevel data} binszList
 return {int list;oct length of 8~maxlevel octree} octNumList
 '''
-def compress(oct_data_seq,outputfile,model,actualcode = True,print=print,showRelut=False):
+def compress(oct_data_seq,outputfile,model, fps_sam_octnodes,actualcode = True,print=print,showRelut=False):
     model.eval()
     levelID = oct_data_seq[:,-1,1].copy()
     oct_data_seq = oct_data_seq.copy()
@@ -100,7 +101,7 @@ def compress(oct_data_seq,outputfile,model,actualcode = True,print=print,showRel
             if input.size(0) != bptt:
                 src_mask = generate_square_subsequent_mask(input.size(0))
             start_time = time.time()
-            output = model(input,src_mask,[])
+            output = model(input,src_mask, None, fps_sam_octnodes)
             elapsed =elapsed+ time.time() - start_time
 
             output = output[bptt-bptt//bpttRepeatTime:].reshape(-1,255)
@@ -153,13 +154,15 @@ def main(fileName,model,actualcode = True,showRelut=True,printl = print):
     octDataPath = matDataPath
     cell,mat = matloader(matDataPath)
     FeatDim = levelNumK                          
-    oct_data_seq = np.transpose(mat[cell[0,0]]).astype(int)[:,-FeatDim:,0:6] 
-
+    oct_data_seq = np.transpose(mat[cell[0,0]]).astype(int)[:,-FeatDim:,0:6]
+    tensor_obj = torch.from_numpy(oct_data_seq)
+    tensor_obj = tensor_obj.view(tensor_obj.shape[0], 1, tensor_obj.shape[1], tensor_obj.shape[2]).cuda()
+    fps_sam_octnodes = farthest_point_sampling(tensor_obj, 128)
     p = np.transpose(mat[cell[1,0]]['Location'])
     ptNum = p.shape[0]
     ptName = os.path.basename(matDataPath)
     outputfile = expName+"/data/"+ptName[:-4]+".bin"
-    binsz,oct_len,elapsed,binszList,octNumList = compress(oct_data_seq,outputfile,model,actualcode,printl,showRelut)
+    binsz,oct_len,elapsed,binszList,octNumList = compress(oct_data_seq,outputfile,model, fps_sam_octnodes,actualcode,printl,showRelut)
     # binsz: float 类型，表示压缩后的二进制文件大小（单位：位），即比特率。
     # oct_len: int 类型，表示八叉树数据的长度（节点数量）。
     # elapsed: float 类型，表示模型进行压缩操作所花费的总时间（单位：秒）。
